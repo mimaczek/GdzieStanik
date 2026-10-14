@@ -51,6 +51,13 @@ class TestStronaBezZapytania:
         resp = client_zalogowany.get(reverse("inventory:search"))
         assert "Nic nie znaleziono" not in resp.content.decode()
 
+    def test_przycisk_dodaj_rzecz_jest_widoczny(self, client_zalogowany):
+        """Szybki dostęp do /add/ ze strony startowej."""
+        resp = client_zalogowany.get(reverse("inventory:search"))
+        tresc = resp.content.decode()
+        assert reverse("inventory:add_item") in tresc
+        assert "Dodaj rzecz" in tresc
+
 
 class TestWyszukiwanieZwykleZadanie:
     def test_znaleziona_rzecz_z_pelna_sciezka(
