@@ -85,6 +85,7 @@ zagnieżdżone dwa poziomy, tagi, właściciele:
 ```bash
 python manage.py seed_demo_data            # odmawia, gdy baza nie jest pusta
 python manage.py seed_demo_data --reset    # kasuje wszystko i wgrywa od nowa
+python manage.py seed_demo_data --clear    # tylko kasuje, bez ponownego wgrywania
 ```
 
 Konta „anna” i „michal” tworzone przy okazji są wyłącznie właścicielami

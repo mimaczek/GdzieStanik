@@ -12,6 +12,11 @@ domu. Wymuszenie (i skasowanie wszystkiego, co już jest):
 
     python manage.py seed_demo_data --reset
 
+Samo usunięcie danych demo, bez ponownego wgrywania (np. gdy chcesz
+wrócić do pustej bazy po testach):
+
+    python manage.py seed_demo_data --clear
+
 Dane tworzone są WYŁĄCZNIE przez warstwę services/, nie przez surowe
 Model.objects.create() — tak samo jak zrobiłby to prawdziwy użytkownik
 przez formularz albo panel administracyjny. Dzięki temu wygenerowane
@@ -46,12 +51,30 @@ class Command(BaseCommand):
             action="store_true",
             help="Usuwa WSZYSTKIE istniejące lokalizacje i przedmioty przed wgraniem.",
         )
+        parser.add_argument(
+            "--clear",
+            action="store_true",
+            help=(
+                "Usuwa dane demo (lokalizacje, przedmioty, konta anna/michal) "
+                "i KOŃCZY bez wgrywania niczego nowego."
+            ),
+        )
 
     def handle(self, *args, **options) -> None:
+        if options["reset"] and options["clear"]:
+            raise CommandError("Użyj --reset albo --clear, nie obu naraz.")
+
+        if options["clear"]:
+            self._wyczysc_wszystko()
+            self._usun_konta_demo()
+            self.stdout.write(self.style.SUCCESS("Dane demo usunięte."))
+            return
+
         if Location.objects.exists() and not options["reset"]:
             raise CommandError(
                 "W bazie są już lokalizacje. Użyj --reset, żeby je "
-                "skasować i wgrać dane demo od nowa (NIEODWRACALNE)."
+                "skasować i wgrać dane demo od nowa (NIEODWRACALNE), "
+                "albo --clear, żeby tylko je usunąć bez ponownego wgrywania."
             )
 
         if options["reset"]:
@@ -222,6 +245,37 @@ class Command(BaseCommand):
         self.stdout.write("Usuwam istniejące dane...")
         for dom in list(Location.objects.filter(parent__isnull=True)):
             location_service.delete_location(dom, force=True)
+
+    def _usun_konta_demo(self) -> None:
+        """
+        Usuwa konta „anna” i „michal” utworzone przez tę komendę —
+        ale TYLKO jeśli nie mają ustawionego prawdziwego hasła.
+
+        Zabezpieczenie na wypadek, gdyby ktoś po wgraniu danych demo
+        nadał któremuś z tych kont realne hasło i zaczął go używać do
+        logowania — wtedy --clear nie skasuje go po cichu. Usunięcie
+        rzeczy należących do tych kont nie jest potrzebne osobno:
+        Item.owner ma on_delete=SET_NULL (P4), więc przedmioty zostają
+        (o ile jeszcze istnieją — zwykle i tak znikną w _wyczysc_wszystko).
+        """
+        usuniete = []
+        for login in ("anna", "michal"):
+            user = User.objects.filter(username=login).first()
+            if user is None:
+                continue
+            if user.has_usable_password() and user.password:
+                self.stdout.write(
+                    self.style.WARNING(
+                        f"Konto „{login}” ma ustawione hasło — pomijam "
+                        f"usunięcie, żeby nie skasować prawdziwego konta."
+                    )
+                )
+                continue
+            user.delete()
+            usuniete.append(login)
+
+        if usuniete:
+            self.stdout.write(f"Usunięto konta demo: {', '.join(usuniete)}.")
 
     def _tagi(self, *names: str) -> list[Tag]:
         """get_or_create dla każdej nazwy — T2: tagi tworzą się automatycznie."""
