@@ -17,12 +17,13 @@ from ..models import Item, Location
 from . import naming_service, path_service
 
 
-def _resolve_home(location: Location | None, parent_item: Item | None) -> Location:
+def resolve_home(location: Location | None, parent_item: Item | None) -> Location:
     """
     Ustala dom dla rzeczy (P7).
 
     Użytkownik nigdy nie podaje tego pola — wynika z miejsca, w którym
-    rzecz leży.
+    rzecz leży. Publiczna, bo korzystają z niej też formularze admina
+    przy walidacji nazwy PRZED zapisem (inventory/admin.py).
     """
     if location is not None and parent_item is not None:
         raise InvalidParentError(
@@ -43,6 +44,10 @@ def _resolve_home(location: Location | None, parent_item: Item | None) -> Locati
     raise InvalidParentError(
         "Rzecz musi leżeć w lokalizacji albo w innym przedmiocie (P1)."
     )
+
+
+# Alias wewnętrzny — reszta modułu używała tej nazwy przed upublicznieniem
+_resolve_home = resolve_home
 
 
 @transaction.atomic

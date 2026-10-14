@@ -144,9 +144,11 @@ MEDIA_ROOT = BASE_DIR / "media"
 
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
-    "staticfiles": {
-        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
-    },
+    # CompressedManifestStaticFilesStorage (hashowane nazwy plików)
+    # wymaga uruchomionego collectstatic — nadpisane w prod.py.
+    # Tutaj zwykły storage, żeby testy i runserver działały bez
+    # dodatkowego kroku budowania.
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
 }
 
 

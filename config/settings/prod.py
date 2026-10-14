@@ -34,6 +34,15 @@ MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", "/data/photos"))
 
 
 # ─────────────────────────────────────────────────────────────────
+# Pliki statyczne — hashowane nazwy, wymaga collectstatic (§9)
+# ─────────────────────────────────────────────────────────────────
+
+STORAGES["staticfiles"] = {  # noqa: F405
+    "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"
+}
+
+
+# ─────────────────────────────────────────────────────────────────
 # Bezpieczeństwo
 # ─────────────────────────────────────────────────────────────────
 #
