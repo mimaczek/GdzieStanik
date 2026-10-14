@@ -27,3 +27,13 @@ def fill_name_norm(sender, instance, **kwargs) -> None:
     a logika jest identyczna.
     """
     instance.name_norm = normalize(instance.name)
+
+
+@receiver(pre_save, sender=Item)
+def fill_description_norm(sender, instance: Item, **kwargs) -> None:
+    """
+    Wypełnia description_norm — potrzebne do wyszukiwania po opisie
+    odpornego na brak polskich znaków (W4). Bez tego porównanie
+    znormalizowanego zapytania z surowym opisem prawie nigdy nie trafia.
+    """
+    instance.description_norm = normalize(instance.description)

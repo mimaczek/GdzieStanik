@@ -177,6 +177,11 @@ class Item(TimestampedModel):
     name_norm = models.CharField(max_length=200, editable=False, db_index=True)
 
     description = models.TextField("opis", blank=True)
+    # W4 dotyczy też opisu (jest pozycją nr 2 wśród przeszukiwanych pól,
+    # domain-model.md §4) — bez tej kolumny filtr porównywałby
+    # znormalizowane zapytanie z surowym, ogonkowym tekstem i prawie
+    # nigdy by nie trafił.
+    description_norm = models.TextField(editable=False, blank=True)
 
     quantity = models.PositiveIntegerField(
         "ilość",

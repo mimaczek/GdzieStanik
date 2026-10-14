@@ -1,6 +1,43 @@
 {% extends "base.html" %}
+
 {% block tresc %}
   <h1>GdzieStanik</h1>
-  <p>Szkielet działa. Wyszukiwarka powstanie w kroku 7.</p>
-  <p><small>Zalogowany: {{ user }}</small></p>
+
+  <form>
+    <fieldset role="group">
+      <input
+        type="search"
+        name="q"
+        value="{{ query }}"
+        placeholder="Czego szukasz?"
+        autofocus
+        autocomplete="off"
+        hx-get="{% url 'inventory:search' %}"
+        hx-trigger="input changed delay:300ms, search"
+        hx-target="#wyniki"
+        hx-include="[name='home']"
+        hx-push-url="true"
+      >
+      {% if homes|length > 1 %}
+        <select
+          name="home"
+          hx-get="{% url 'inventory:search' %}"
+          hx-trigger="change"
+          hx-target="#wyniki"
+          hx-include="[name='q']"
+        >
+          <option value="">Wszystkie domy</option>
+          {% for home in homes %}
+            <option value="{{ home.id }}" {% if home.id == selected_home_id %}selected{% endif %}>
+              {{ home.name }}
+            </option>
+          {% endfor %}
+        </select>
+      {% endif %}
+    </fieldset>
+  </form>
+
+  <div id="wyniki">
+    {% include "inventory/partials/search_results.html" %}
+  </div>
 {% endblock %}

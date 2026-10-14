@@ -144,6 +144,20 @@ class TestG5NormalizacjaPrzyZapisie:
         mlotek.refresh_from_db()
         assert mlotek.name_norm == "lopata"
 
+    def test_przedmiot_dostaje_description_norm(self, dom, szafa):
+        """
+        W4 dotyczy też opisu, nie tylko nazwy (domain-model.md §4,
+        pole nr 2). Bez description_norm wyszukiwanie po opisie bez
+        polskich znaków prawie nigdy by nie trafiało.
+        """
+        rzecz = Item.objects.create(
+            name="Coś", description="leży obok narzędziowni", location=szafa, home=dom
+        )
+        assert rzecz.description_norm == "lezy obok narzedziowni"
+
+    def test_pusty_opis_daje_pusty_description_norm(self, mlotek):
+        assert mlotek.description_norm == ""
+
 
 class TestP9KazdyPrzedmiotMozeBycPojemnikiem:
     """P9: brak flagi „jest pojemnikiem”."""

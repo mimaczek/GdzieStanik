@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load inventory_extras %}
+
+{% block tytul %}{{ location.name }} — GdzieStanik{% endblock %}
+
+{% block tresc %}
+  <nav><a href="{% url 'inventory:search' %}">← wyszukiwanie</a></nav>
+
+  <h1>{{ location.name }}</h1>
+  <p class="search-result__path">{{ path|join_path }}</p>
+
+  {% if location.photo %}
+    <img src="{{ location.photo.url }}" alt="{{ location.name }}" style="max-width: 300px;">
+  {% endif %}
+
+  {% if children %}
+    <h2>Podlokalizacje</h2>
+    <ul>
+      {% for dziecko in children %}
+        <li><a href="{% url 'inventory:location_detail' dziecko.id %}">{{ dziecko.name }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if items %}
+    <h2>Rzeczy</h2>
+    <ul>
+      {% for rzecz in items %}
+        <li>
+          <a href="{% url 'inventory:item_detail' rzecz.id %}">{{ rzecz.name }}</a>
+          {% if rzecz.quantity > 1 %}({{ rzecz.quantity }} szt.){% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if not children and not items %}
+    <p>Pusto.</p>
+  {% endif %}
+{% endblock %}

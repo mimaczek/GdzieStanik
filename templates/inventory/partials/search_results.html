@@ -1,0 +1,32 @@
+{% load inventory_extras %}
+{% if query %}
+  {% if results %}
+    <ul class="search-results">
+      {% for wynik in results %}
+        <li class="search-result search-result--{{ wynik.kind }}">
+          <div class="search-result__name">
+            {% if wynik.kind == "item" %}
+              <a href="{% url 'inventory:item_detail' wynik.id %}">{{ wynik.name }}</a>
+              {% if wynik.quantity and wynik.quantity > 1 %}
+                <span class="search-result__quantity">({{ wynik.quantity }} szt.)</span>
+              {% endif %}
+              {% if wynik.is_container %}
+                <span class="search-result__badge" title="Zawiera inne rzeczy">📦</span>
+              {% endif %}
+            {% else %}
+              <a href="{% url 'inventory:location_detail' wynik.id %}">{{ wynik.name }}</a>
+              <span class="search-result__badge" title="Lokalizacja">📍</span>
+            {% endif %}
+          </div>
+          <div class="search-result__path">
+            {{ wynik.path|join_path }}
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="search-empty">
+      Nic nie znaleziono dla „{{ query }}”.
+    </p>
+  {% endif %}
+{% endif %}

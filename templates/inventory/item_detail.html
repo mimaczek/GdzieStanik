@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% load inventory_extras %}
+
+{% block tytul %}{{ item.name }} — GdzieStanik{% endblock %}
+
+{% block tresc %}
+  <nav><a href="{% url 'inventory:search' %}">← wyszukiwanie</a></nav>
+
+  <h1>{{ item.name }}</h1>
+  <p class="search-result__path">{{ path|join_path }}</p>
+
+  {% if item.photo %}
+    <img src="{{ item.photo.url }}" alt="{{ item.name }}" style="max-width: 300px;">
+  {% endif %}
+
+  <dl>
+    {% if item.quantity > 1 %}
+      <dt>Ilość</dt><dd>{{ item.quantity }}</dd>
+    {% endif %}
+    {% if item.owner %}
+      <dt>Właściciel</dt><dd>{{ item.owner.display_name }}</dd>
+    {% endif %}
+    {% if item.description %}
+      <dt>Opis</dt><dd>{{ item.description }}</dd>
+    {% endif %}
+    {% if item.tags.all %}
+      <dt>Tagi</dt>
+      <dd>{% for tag in item.tags.all %}{{ tag.name }}{% if not forloop.last %}, {% endif %}{% endfor %}</dd>
+    {% endif %}
+  </dl>
+
+  {% if contents %}
+    <h2>Zawartość</h2>
+    <ul>
+      {% for rzecz in contents %}
+        <li><a href="{% url 'inventory:item_detail' rzecz.id %}">{{ rzecz.name }}</a></li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endblock %}
