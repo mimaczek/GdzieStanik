@@ -14,7 +14,9 @@ asgiref==3.9.1                  # zależność Django
 # --- uwierzytelnianie ---
 argon2-cffi==25.1.0             # Argon2id dla haseł (ADR-0007)
 argon2-cffi-bindings==21.2.0
-cffi==1.17.1
+# cffi — bez przypiętej wersji: 1.17.1 nie ma wheela dla Pythona 3.14.
+# Instaluje się jako zależność argon2-cffi (obecnie 2.1.1).
+cffi
 pycparser==2.22
 
 # --- obrazy ---

@@ -63,3 +63,8 @@ secrets.toml
 # --- System ---
 .DS_Store
 Thumbs.db
+
+# Baza lokalna
+gdziestanik.db
+gdziestanik.db-*
+media/

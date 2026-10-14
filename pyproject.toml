@@ -1,0 +1,32 @@
+[project]
+name = "gdziestanik"
+version = "0.1.0"
+description = "Domowy katalog rzeczy — gdzie jest X?"
+requires-python = ">=3.14"
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.dev"
+python_files = ["test_*.py"]
+testpaths = ["inventory/tests", "accounts/tests"]
+addopts = "-v --tb=short"
+
+[tool.ruff]
+line-length = 88
+target-version = "py314"
+exclude = ["migrations", ".venv", "vendor"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "DJ"]
+ignore = [
+    "B008",    # wywołania w argumentach domyślnych — typowe w Django
+    "DJ001",   # null=True na CharField — świadome przy parent_item
+]
+
+[tool.mypy]
+python_version = "3.14"
+plugins = ["mypy_django_plugin.main"]
+exclude = ["migrations/", "vendor/", ".venv/"]
+ignore_missing_imports = true
+
+[tool.django-stubs]
+django_settings_module = "config.settings.dev"
