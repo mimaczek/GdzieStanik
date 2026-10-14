@@ -102,5 +102,5 @@ jest wyraźny — warto rozważyć powrót do wariantu A z wygodną konwersją w
 
 ## Powiązane
 
-- `docs/domain-model.md` §3.2 — reguły P1, P5–P8
+- `docs/domain-model.md` §3.2 — reguły P1, P5–P11
 - ADR-0002 — unikalność nazw, korzysta ze zdenormalizowanego `dom_id`

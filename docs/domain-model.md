@@ -1,13 +1,14 @@
 # GdzieStanik — model domeny
 
-> Status: **uzgodniony szkic** · Wersja dokumentu: 0.2 · Data: 2026-10-14
+> Status: **uzgodniony** · Wersja dokumentu: 1.0 · Data: 2026-10-14
 >
 > Dokument opisuje **co** przechowujemy i **jakie reguły** obowiązują.
 > Szczegóły techniczne (warstwy, biblioteki, wdrożenie) są w `architecture.md`.
 >
-> Zmiany w 0.2: rozstrzygnięto pytania Q1–Q6. Przedmiot może zawierać inne
-> przedmioty (ADR-0001), nazwy przedmiotów są unikalne w obrębie domu
-> (ADR-0002), obsługa wielu domów wchodzi do v1.
+> Wszystkie pytania otwarte (Q1–Q9) zostały rozstrzygnięte. Przedmiot może
+> zawierać inne przedmioty (ADR-0001), nazwy przedmiotów są unikalne
+> w obrębie domu (ADR-0002), obsługa wielu domów wchodzi do v1. Model jest
+> gotowy do przełożenia na schemat bazy.
 
 ---
 
@@ -118,6 +119,15 @@ ta sama encja, różniąca się tylko miejscem w drzewie i opcjonalnym rodzajem.
   kaskadowo dla całego poddrzewa przy przenosinach.
 - **P8.** Przeniesienie przedmiotu zawierającego inne przedmioty przenosi
   całą zawartość.
+- **P9.** **Każdy** przedmiot może przyjąć zawartość — nie ma flagi
+  „jest pojemnikiem” ani osobnego typu. Pusty pojemnik jest nieodróżnialny
+  od zwykłej rzeczy, bo nim właśnie jest (Q7).
+- **P10.** Zagnieżdżanie przedmiotów nie jest ograniczone technicznie, ale
+  interfejs ostrzega powyżej **3 poziomów** — głębiej zwykle oznacza, że
+  pojemnik powinien być lokalizacją (Q8).
+- **P11.** Przedmiot może leżeć bezpośrednio w domu, bez wskazania pokoju —
+  dom jest zwykłą lokalizacją. Interfejs sugeruje wybór konkretniejszego
+  miejsca, ale nie wymusza go (Q9).
 
 #### Unikalność nazw (ADR-0002)
 
@@ -243,16 +253,13 @@ pojemniki doliczane zapytaniem rekurencyjnym tylko dla faktycznych wyników.
 | **Q4** | Powtarzające się nazwy przedmiotów? | **Nazwy unikalne w obrębie domu**, przy kolizji proponowany sufiks `_2` do zatwierdzenia (ADR-0002) |
 | **Q5** | Tagi na lokalizacjach? | **Tak**, wspólna pula tagów dla przedmiotów i lokalizacji |
 | **Q6** | Cykle przy przenoszeniu? | **Błąd walidacji** dla obu drzew — reguły L1 i P6 |
+| **Q7** | Czy pojemnik to osobny rodzaj przedmiotu? | **Nie.** Brak flagi i brak typu — każdy przedmiot przyjmuje zawartość (P9) |
+| **Q8** | Limit zagnieżdżenia przedmiotów? | **Ostrzeżenie powyżej 3 poziomów**, bez twardej blokady (P10) |
+| **Q9** | Rzecz bezpośrednio w domu, bez pokoju? | **Dozwolone.** Interfejs sugeruje konkretniejsze miejsce, ale nie wymusza (P11) |
 
-## 8. Pytania nadal otwarte
+Wszystkie pytania otwarte z wersji 0.1 zostały rozstrzygnięte.
 
-| # | Pytanie | Kontekst |
-|---|---|---|
-| **Q7** | Czy pusty przedmiot-pojemnik różni się czymś od zwykłego przedmiotu? | Propozycja: nie. Dowolny przedmiot przyjmuje zawartość, bez flagi |
-| **Q8** | Limit zagnieżdżenia przedmiotów? | Dla lokalizacji ostrzegamy przy 6 poziomach (L4). Dla przedmiotów chyba 3 wystarczą |
-| **Q9** | Czy przenieść przedmiot „do korzenia domu” bez wskazania pokoju? | Technicznie możliwe (dom to lokalizacja), ale może prowadzić do bałaganu |
-
-## 9. Przykładowe dane
+## 8. Przykładowe dane
 
 ```
 Dom (korzeń)
