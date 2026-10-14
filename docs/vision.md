@@ -190,6 +190,5 @@ niskie tarcie przy dodawaniu i przenoszeniu**, nie bogactwo funkcji.
 ## Powiązane dokumenty
 
 - [`domain-model.md`](domain-model.md) — encje, relacje i reguły biznesowe
-- [`adr/0001-przedmiot-jako-pojemnik.md`](adr/0001-przedmiot-jako-pojemnik.md)
-- [`adr/0002-unikalnosc-nazw-przedmiotow.md`](adr/0002-unikalnosc-nazw-przedmiotow.md)
-- [`architecture.md`](architecture.md) — warstwy i struktura kodu *(do napisania)*
+- [`architecture.md`](architecture.md) — warstwy, struktura kodu, schemat bazy
+- [`adr/`](adr/) — decyzje architektoniczne wraz z uzasadnieniami

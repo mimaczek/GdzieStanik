@@ -239,7 +239,7 @@ pojemniki doliczane zapytaniem rekurencyjnym tylko dla faktycznych wyników.
 - **G3.** Wszystkie znaczniki czasu w UTC, konwersja do czasu lokalnego
   dopiero przy wyświetlaniu.
 - **G4.** Zdjęcia skalowane przy uploadzie do maks. 1600 px dłuższego boku
-  plus miniatura 300 px. Oryginał nie jest zachowywany (ADR-0005).
+  plus miniatura 300 px. Oryginał nie jest zachowywany (ADR-0006).
 - **G5.** Nazwy przedmiotów, lokalizacji i tagów mają kolumnę
   znormalizowaną — służy równocześnie wyszukiwaniu (W4) i unikalności (N1).
 
@@ -315,6 +315,5 @@ szczoteczka podróżna → Dom › Piętro › Sypialnia › Szafa › Półka g
 ## Powiązane dokumenty
 
 - [`vision.md`](vision.md) — problem, użytkownicy, zakres
-- [`adr/0001-przedmiot-jako-pojemnik.md`](adr/0001-przedmiot-jako-pojemnik.md)
-- [`adr/0002-unikalnosc-nazw-przedmiotow.md`](adr/0002-unikalnosc-nazw-przedmiotow.md)
-- [`architecture.md`](architecture.md) — realizacja techniczna *(do napisania)*
+- [`architecture.md`](architecture.md) — realizacja techniczna i schemat bazy
+- [`adr/`](adr/) — decyzje architektoniczne wraz z uzasadnieniami
