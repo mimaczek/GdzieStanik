@@ -11,7 +11,6 @@ w warstwie services/ (reguła A4 z architecture.md).
 from __future__ import annotations
 
 import uuid
-from pathlib import Path
 
 from django.conf import settings
 from django.db import models
@@ -20,17 +19,28 @@ from django.db.models import Q
 
 def photo_upload_path(instance: models.Model, filename: str) -> str:
     """
-    Ścieżka zapisu zdjęcia: photos/{rok}/{miesiąc}/{uuid}.webp
+    Ścieżka zapisu zdjęcia głównego: photos/{rok}/{miesiąc}/{uuid}.webp
 
     Podział na rok i miesiąc zapobiega powstaniu jednego katalogu
     z tysiącami plików. Nazwa z UUID — oryginalna nazwa pliku z telefonu
     nie niesie informacji, a mogłaby zawierać niebezpieczne znaki.
+
+    Rozszerzenie zawsze .webp, niezależnie od formatu wejściowego —
+    PhotoService konwertuje każde zdjęcie do WebP przed zapisem (ADR-0006),
+    więc oryginalne rozszerzenie (.jpg, .png) byłoby mylące.
     """
     from django.utils import timezone
 
     teraz = timezone.now()
-    rozszerzenie = Path(filename).suffix.lower() or ".webp"
-    return f"photos/{teraz:%Y}/{teraz:%m}/{uuid.uuid4().hex}{rozszerzenie}"
+    return f"photos/{teraz:%Y}/{teraz:%m}/{uuid.uuid4().hex}.webp"
+
+
+def photo_thumbnail_upload_path(instance: models.Model, filename: str) -> str:
+    """Ścieżka zapisu miniatury — osobny plik, ten sam schemat katalogów."""
+    from django.utils import timezone
+
+    teraz = timezone.now()
+    return f"photos/{teraz:%Y}/{teraz:%m}/{uuid.uuid4().hex}_thumb.webp"
 
 
 class TimestampedModel(models.Model):
@@ -124,6 +134,9 @@ class Location(TimestampedModel):
     )
 
     photo = models.ImageField("zdjęcie", upload_to=photo_upload_path, blank=True)
+    photo_thumbnail = models.ImageField(
+        upload_to=photo_thumbnail_upload_path, blank=True, editable=False
+    )
 
     sort_order = models.IntegerField("kolejność", default=0)
 
@@ -237,6 +250,9 @@ class Item(TimestampedModel):
     )
 
     photo = models.ImageField("zdjęcie", upload_to=photo_upload_path, blank=True)
+    photo_thumbnail = models.ImageField(
+        upload_to=photo_thumbnail_upload_path, blank=True, editable=False
+    )
 
     tags = models.ManyToManyField(
         Tag, verbose_name="tagi", blank=True, related_name="items"

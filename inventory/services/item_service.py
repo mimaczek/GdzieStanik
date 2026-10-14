@@ -14,7 +14,7 @@ from django.db import transaction
 
 from ..exceptions import InvalidParentError, NameCollisionError
 from ..models import Item, Location
-from . import naming_service, path_service
+from . import naming_service, path_service, photo_service
 
 
 def resolve_home(location: Location | None, parent_item: Item | None) -> Location:
@@ -60,6 +60,7 @@ def create_item(
     description: str = "",
     owner=None,
     tags: list | None = None,
+    photo=None,
     accept_suggested_name: bool = False,
     updated_by=None,
 ) -> Item:
@@ -72,6 +73,11 @@ def create_item(
 
     accept_suggested_name=True przyjmuje propozycję bez pytania —
     używane po zatwierdzeniu przez użytkownika.
+
+    photo to surowy UploadedFile z formularza (niezescalony plik
+    z telefonu) — przetwarzany tutaj przez photo_service przed
+    zapisem (ADR-0006: skalowanie, konwersja do WebP, miniatura).
+    Może rzucić InvalidPhotoError, jeśli plik nie nadaje się na zdjęcie.
     """
     home = _resolve_home(location, parent_item)
 
@@ -91,6 +97,12 @@ def create_item(
         owner=owner,
         updated_by=updated_by,
     )
+
+    if photo:
+        przetworzone = photo_service.process_photo(photo)
+        rzecz.photo = przetworzone.main
+        rzecz.photo_thumbnail = przetworzone.thumbnail
+
     rzecz.full_clean(exclude=["name_norm", "home"])
     rzecz.save()
 

@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% load inventory_extras %}
+
+{% block tytul %}Przenieś {{ item.name }} — GdzieStanik{% endblock %}
+
+{% block tresc %}
+  <nav><a href="{% url 'inventory:item_detail' item.pk %}">← {{ item.name }}</a></nav>
+
+  <h1>Przenieś „{{ item.name }}”</h1>
+  <p class="search-result__path">Obecnie: {{ current_path|join_path }}</p>
+
+  {% if form.non_field_errors %}
+    {% for error in form.non_field_errors %}
+      <p role="alert">{{ error }}</p>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+      {% for error in field.errors %}
+        <small style="color: var(--pico-del-color, #c00);">{{ error }}</small>
+      {% endfor %}
+    {% endfor %}
+
+    <button type="submit">Przenieś</button>
+  </form>
+{% endblock %}

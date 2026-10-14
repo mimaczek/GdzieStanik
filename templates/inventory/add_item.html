@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block tytul %}Dodaj rzecz — GdzieStanik{% endblock %}
+
+{% block tresc %}
+  <nav><a href="{% url 'inventory:search' %}">← wyszukiwanie</a></nav>
+
+  <h1>Dodaj rzecz</h1>
+
+  {% if messages %}
+    {% for message in messages %}
+      <p role="alert">{{ message }}</p>
+    {% endfor %}
+  {% endif %}
+
+  <form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}
+      {% for error in field.errors %}
+        <small style="color: var(--pico-del-color, #c00);">{{ error }}</small>
+      {% endfor %}
+    {% endfor %}
+
+    {% if form.non_field_errors %}
+      {% for error in form.non_field_errors %}
+        <p role="alert">{{ error }}</p>
+      {% endfor %}
+    {% endif %}
+
+    {% if form.suggested_name %}
+      {# Propozycja sufiksu (N2) — jeden klik zamiast ręcznego wpisywania #}
+      <button
+        type="submit"
+        name="accept_suggested_name"
+        value="1"
+        class="secondary"
+      >
+        Użyj nazwy „{{ form.suggested_name }}”
+      </button>
+    {% endif %}
+
+    <button type="submit">Dodaj</button>
+  </form>
+{% endblock %}

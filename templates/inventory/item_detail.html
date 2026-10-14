@@ -9,9 +9,15 @@
   <h1>{{ item.name }}</h1>
   <p class="search-result__path">{{ path|join_path }}</p>
 
-  {% if item.photo %}
-    <img src="{{ item.photo.url }}" alt="{{ item.name }}" style="max-width: 300px;">
+  {% if item.photo_thumbnail %}
+    <img src="{{ item.photo_thumbnail.url }}" alt="{{ item.name }}" style="max-width: 300px;">
   {% endif %}
+
+  <p>
+    <a href="{% url 'inventory:move_item' item.pk %}" role="button" class="secondary">
+      Przenieś
+    </a>
+  </p>
 
   <dl>
     {% if item.quantity > 1 %}

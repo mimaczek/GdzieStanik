@@ -55,3 +55,10 @@ class NotEmptyError(DomainError):
 
 class InvalidParentError(DomainError):
     """Naruszenie reguły P1 — zły zestaw pól rodzica."""
+
+
+class InvalidPhotoError(DomainError):
+    """
+    Wgrany plik nie nadaje się na zdjęcie — zły format, za duży,
+    albo Pillow nie potrafi go otworzyć jako obrazu (ADR-0006).
+    """
