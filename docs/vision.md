@@ -1,6 +1,9 @@
 # GdzieStanik — wizja produktu
 
-> Status: **szkic do dyskusji** · Wersja dokumentu: 0.1 · Data: 2026-10-14
+> Status: **uzgodniony szkic** · Wersja dokumentu: 0.2 · Data: 2026-10-14
+>
+> Zmiany w 0.2: zakres v1 obejmuje wiele nieruchomości, zdjęcia lokalizacji
+> oraz przedmioty-pojemniki (walizka z rzeczami w środku).
 
 ---
 
@@ -84,17 +87,43 @@ osobno**.
 > „Czyj jest ten rower w garażu?” — przedmiot ma przypisanego właściciela
 > spośród domowników.
 
+### 5.6 Spakowana walizka
+
+> Anna wraca z wyjazdu i odstawia walizkę do szafy, nie rozpakowując
+> kosmetyczki. Dwa tygodnie później szuka szczoteczki podróżnej. Aplikacja
+> pokazuje: `Dom › Sypialnia › Szafa › Półka górna › walizka › kosmetyczka`.
+
+Walizka i kosmetyczka pozostają **przedmiotami** — mają właściciela, da się
+je znaleźć jako rzeczy — a mimo to zawierają inne przedmioty. Przeniesienie
+walizki przenosi całą zawartość (ADR-0001).
+
+### 5.7 Dwie nieruchomości
+
+> Michał w domku letniskowym szuka wkrętarki. Pamięta, że gdzieś jest, ale
+> nie wie, czy przywiózł ją z miasta. Wyszukuje „wkretarka” i widzi, że rzecz
+> jest w mieszkaniu, w piwnicy — nie ma po co szukać na miejscu.
+
+Wyszukiwanie obejmuje **wszystkie nieruchomości**, a wynik pokazuje, w której
+z nich rzecz się znajduje. Negatywna odpowiedź („to jest gdzie indziej”) bywa
+równie cenna jak pozytywna.
+
 ## 6. Zakres wersji 1.0
 
 ### W zakresie
 
 - [ ] Konta domowników: logowanie, wylogowanie, zmiana hasła
+- [ ] **Wiele nieruchomości** — mieszkanie, domek letniskowy, garaż; każda
+      jako osobne drzewo, wspólne konta domowników
 - [ ] Drzewo lokalizacji o dowolnej głębokości (pokój → mebel → półka → pojemnik)
-- [ ] Dodawanie, edycja i usuwanie lokalizacji
+- [ ] Dodawanie, edycja i usuwanie lokalizacji, ze zdjęciem pojemnika
 - [ ] Przedmioty: nazwa, opis, ilość, tagi, zdjęcie, właściciel, lokalizacja
-- [ ] **Wyszukiwanie po nazwie, opisie i tagach z pełną ścieżką w wyniku**
+- [ ] **Przedmioty-pojemniki** — walizka czy kosmetyczka pozostaje rzeczą,
+      a mimo to można zapisać, co jest w środku
+- [ ] Tagi na przedmiotach i lokalizacjach
+- [ ] **Wyszukiwanie po nazwie, opisie i tagach z pełną ścieżką w wyniku**,
+      odporne na brak polskich znaków
 - [ ] Przeglądanie drzewa i zawartości lokalizacji
-- [ ] Przenoszenie przedmiotów i całych lokalizacji
+- [ ] Przenoszenie przedmiotów i całych lokalizacji wraz z zawartością
 - [ ] Interfejs działający na telefonie (responsywny)
 - [ ] Uruchomienie przez `docker compose` na Raspberry Pi
 
@@ -111,6 +140,8 @@ osobno**.
 | Aplikacja mobilna natywna | Strona responsywna wystarczy |
 | Import/eksport CSV | Przy ręcznym wprowadzaniu danych mało przydatne |
 | Wypożyczania i zwroty rzeczy | Inny model użycia |
+| Galeria zdjęć przedmiotu | Jedno zdjęcie wystarcza do rozpoznania rzeczy (Q1) |
+| Uprawnienia per nieruchomość | Każde konto widzi wszystkie domy — ta sama rodzina |
 
 ## 7. Kryteria sukcesu
 
@@ -134,6 +165,8 @@ niskie tarcie przy dodawaniu i przenoszeniu**, nie bogactwo funkcji.
 | **Zdjęcia zajadą kartę SD w Pi** | Awaria sprzętu | Skalowanie przy uploadzie, pliki na dysku USB/SSD poza kartą |
 | **Brak backupu** | Utrata całej pracy | Kopia pliku SQLite + katalogu zdjęć, zadanie cron |
 | **Rozrost zakresu** | v1 nigdy nie powstaje | Lista „poza zakresem” powyżej jest wiążąca |
+| **Wymuszona unikalność nazw spowalnia dodawanie** | Tarcie wbrew zasadzie 9.3 | Komunikat zachęca do nazwy opisowej zamiast sufiksu `_2`; obserwować, czy baza nie zapełnia się numerami (ADR-0002) |
+| **Kaskadowe usunięcie pojemnika** | Utrata kilkunastu wpisów naraz | Potwierdzenie z liczbą rzeczy w środku przed usunięciem |
 
 ## 9. Zasady projektowe
 
@@ -157,5 +190,6 @@ niskie tarcie przy dodawaniu i przenoszeniu**, nie bogactwo funkcji.
 ## Powiązane dokumenty
 
 - [`domain-model.md`](domain-model.md) — encje, relacje i reguły biznesowe
+- [`adr/0001-przedmiot-jako-pojemnik.md`](adr/0001-przedmiot-jako-pojemnik.md)
+- [`adr/0002-unikalnosc-nazw-przedmiotow.md`](adr/0002-unikalnosc-nazw-przedmiotow.md)
 - [`architecture.md`](architecture.md) — warstwy i struktura kodu *(do napisania)*
-- [`adr/`](adr/) — decyzje architektoniczne *(do napisania)*
