@@ -31,7 +31,6 @@ from django.core.exceptions import ValidationError
 from django.db import models as db_models
 from django.forms import ModelForm, Textarea
 from django.http import HttpRequest
-from django.utils.html import format_html
 
 from . import services
 from .exceptions import CycleError, DomainError, NotEmptyError
@@ -114,21 +113,38 @@ class LocationChildrenInline(admin.TabularInline):
 @admin.register(Location)
 class LocationAdmin(admin.ModelAdmin):
     form = LocationForm
-    list_display = ["indented_name", "kind", "item_count", "updated_at"]
+    list_display = ["full_path_display", "kind", "item_count", "updated_at"]
     list_filter = ["kind"]
     search_fields = ["name_norm"]
     # raw_id_fields zamiast listy rozwijanej — przy tysiącach lokalizacji
     # standardowy <select> byłby bardzo wolny (architecture.md §6)
     raw_id_fields = ["parent"]
-    readonly_fields = ["name_norm", "created_at", "updated_at", "updated_by"]
+    # full_path_display jako readonly_fields trafia na koniec formularza
+    # automatycznie (Django dokłada readonly_fields do domyślnych
+    # fieldsets, gdy nie są one zdefiniowane jawnie) — nie trzeba
+    # nadpisywać get_fieldsets.
+    readonly_fields = [
+        "full_path_display",
+        "name_norm",
+        "created_at",
+        "updated_at",
+        "updated_by",
+    ]
     list_select_related = ["parent"]
     inlines = [LocationChildrenInline]
 
-    @admin.display(description="nazwa", ordering="name_norm")
-    def indented_name(self, obj: Location) -> str:
-        """Wcięcie pokazujące głębokość — orientacja w drzewie na liście."""
-        glebokosc = path_service.location_depth(obj) - 1
-        return format_html("{}{}", "— " * glebokosc, obj.name)
+    @admin.display(description="pełna ścieżka")
+    def full_path_display(self, obj: Location) -> str:
+        """
+        Pełna ścieżka od domu włącznie z samą lokalizacją.
+
+        Przy dodawaniu nowej lokalizacji (obj.pk is None) nie ma jeszcze
+        czego pokazać — path_service operuje na obiektach już zapisanych
+        w drzewie.
+        """
+        if obj.pk is None:
+            return "—"
+        return path_service.format_path(path_service.path_for_location(obj))
 
     @admin.display(description="rzeczy")
     def item_count(self, obj: Location) -> int:
@@ -280,15 +296,42 @@ class ItemForm(ModelForm):
 @admin.register(Item)
 class ItemAdmin(admin.ModelAdmin):
     form = ItemForm
-    list_display = ["name", "home", "quantity", "owner", "is_container_display"]
+    list_display = [
+        "name",
+        "full_path_display",
+        "quantity",
+        "owner",
+        "is_container_display",
+    ]
     list_filter = ["home", "owner"]
     search_fields = ["name_norm"]
     raw_id_fields = ["location", "parent_item", "owner"]
-    readonly_fields = ["name_norm", "home", "created_at", "updated_at", "updated_by"]
+    readonly_fields = [
+        "full_path_display",
+        "name_norm",
+        "home",
+        "created_at",
+        "updated_at",
+        "updated_by",
+    ]
     list_select_related = ["home", "owner"]
     formfield_overrides = {
         db_models.TextField: {"widget": Textarea(attrs={"rows": 3})},
     }
+
+    @admin.display(description="pełna ścieżka")
+    def full_path_display(self, obj: Item) -> str:
+        """
+        Ścieżka do miejsca, w którym rzecz leży, bez nazwy samej rzeczy
+        — ta sama konwencja co w wynikach wyszukiwania
+        (search_service.SearchResult.path vs full_path).
+
+        Przechodzi przez przedmioty-pojemniki (ADR-0001), np.:
+        „Dom › Sypialnia › Szafa › Walizka”.
+        """
+        if obj.pk is None:
+            return "—"
+        return path_service.format_path(path_service.path_for_item(obj))
 
     @admin.display(description="pojemnik", boolean=True)
     def is_container_display(self, obj: Item) -> bool:
