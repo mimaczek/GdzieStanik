@@ -1,0 +1,22 @@
+# GdzieStanik — zależności deweloperskie
+#
+# Instalowane dodatkowo do requirements.txt.
+
+-r requirements.txt
+
+# --- testy ---
+pytest==8.4.1
+pytest-django==4.11.1
+pluggy==1.6.0                   # zależność pytest
+iniconfig==2.1.0                # zależność pytest
+
+# --- jakość kodu ---
+ruff==0.13.1                    # lint i formatowanie
+mypy==1.18.1
+django-stubs==5.2.2
+django-stubs-ext==5.2.2
+mypy-extensions==1.1.0
+typing-extensions==4.15.0
+tomli==2.2.1
+types-PyYAML==6.0.12.20250915   # zależność django-stubs
+PyYAML==6.0.2

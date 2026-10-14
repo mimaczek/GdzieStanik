@@ -1,0 +1,29 @@
+# GdzieStanik — zależności produkcyjne
+#
+# Python 3.14 (systemowy w Ubuntu 26.04)
+# Django 6.0 — jedyna linia wspierająca Pythona 3.14
+#
+# Wersje przypięte celowo: pobieranie odbywa się raz, poza VPN-em.
+# Przy braku sieci nie ma jak doczytać, co się zmieniło między wersjami.
+
+# --- rdzeń ---
+Django==6.0
+sqlparse==0.5.3                 # zależność Django, formatowanie SQL
+asgiref==3.9.1                  # zależność Django
+
+# --- uwierzytelnianie ---
+argon2-cffi==25.1.0             # Argon2id dla haseł (ADR-0007)
+argon2-cffi-bindings==21.2.0
+cffi==1.17.1
+pycparser==2.22
+
+# --- obrazy ---
+pillow==11.3.0                  # skalowanie zdjęć (ADR-0006)
+
+# --- serwer produkcyjny ---
+gunicorn==23.0.0
+packaging==24.2                 # zależność gunicorna
+whitenoise==6.9.0               # serwowanie plików statycznych
+
+# --- konfiguracja ---
+python-dotenv==1.1.0            # wczytywanie .env

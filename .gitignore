@@ -25,6 +25,19 @@ env/
 htmlcov/
 .tox/
 
+# --- Zależności pobrane do pracy offline ---
+# Setki MB binariów — nie trafiają do repozytorium.
+# Odtworzenie: ./scripts/pobierz-zaleznosci.sh (wymaga internetu)
+vendor/
+
+# Zasoby frontendu pobierane przez ten sam skrypt
+static/htmx.min.js
+static/pico.min.css
+
+# --- Django ---
+staticfiles/
+*.log
+
 # --- Dane aplikacji ---
 *.db
 *.sqlite

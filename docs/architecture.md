@@ -15,8 +15,8 @@
 
 | Warstwa | Wybór | Uzasadnienie |
 |---|---|---|
-| Język | Python 3.12+ | |
-| Framework | Django 5.x | ADR-0007 |
+| Język | Python 3.14 | jedyny w Ubuntu 26.04 |
+| Framework | Django 6.0 | ADR-0007, jedyna linia dla Py 3.14 |
 | Szablony | Django Templates | wbudowane |
 | Interaktywność | HTMX | bez builda, bez Node |
 | CSS | Pico.css lub własny | jeden plik, bez bundlera |
@@ -399,7 +399,7 @@ Tylko tam, gdzie wygoda ma znaczenie:
 | Przeglądanie drzewa | `/location/<id>/` | rozwijane węzły przez HTMX |
 | Przeniesienie | `/item/<id>/move/` | zmiana rodzica z obsługą kolizji nazw (N5) |
 
-Wszystkie wymagają zalogowania (`LoginRequiredMiddleware` w Django 5.1+).
+Wszystkie wymagają zalogowania (`LoginRequiredMiddleware`).
 
 ## 8. Bezpieczeństwo
 
@@ -448,7 +448,7 @@ services:
 
 **Uwagi dla Raspberry Pi:**
 
-- obraz `python:3.12-slim` dla ARM64,
+- obraz `python:3.14-slim` dla ARM64,
 - Pillow i `argon2-cffi` mają gotowe pakiety ARM64 — brak kompilacji,
 - **dwa procesy Gunicorna** ze względu na cache ścieżek (§5.2) —
   przy większej liczbie trzeba unieważniać go międzyprocesowo (pytanie A2),

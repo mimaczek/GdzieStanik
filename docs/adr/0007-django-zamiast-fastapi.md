@@ -60,7 +60,16 @@ ale bez spójności i z większą liczbą zależności do pilnowania.
 
 ## Decyzja
 
-Django 5.x jako framework aplikacji.
+Django 6.0 jako framework aplikacji.
+
+**Uwaga o wersjach.** Ubuntu 26.04 dostarcza wyłącznie Pythona 3.14 —
+nie ma w repozytoriach ani 3.12, ani 3.13. Django 5.2 LTS obsługuje
+Pythona najwyżej do 3.13, więc jedyną zgodną linią jest Django 6.0,
+które wspiera 3.12–3.14.
+
+Oznacza to rezygnację z wydania LTS. Dla projektu domowego bez znaczenia,
+ale warto to odnotować: krótszy okres wsparcia wynika z wersji Pythona
+w systemie, nie z preferencji.
 
 ### Co odpada z wcześniejszych planów
 

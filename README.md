@@ -36,7 +36,7 @@ ważności, dostępu spoza domu. Uzasadnienia w `docs/vision.md` §6.
 
 | | |
 |---|---|
-| Backend | Python 3.12, Django 5.x |
+| Backend | Python 3.14, Django 6.0 |
 | Frontend | szablony Django + HTMX — **bez Node.js i bez procesu budowania** |
 | Baza | SQLite w trybie WAL |
 | Wdrożenie | Docker Compose na Raspberry Pi, w sieci domowej |
@@ -54,6 +54,7 @@ Wybory uzasadnione w `docs/adr/`.
 | [`docs/vision.md`](docs/vision.md) | Problem, scenariusze użycia, zakres, ryzyka |
 | [`docs/domain-model.md`](docs/domain-model.md) | Encje i reguły biznesowe |
 | [`docs/architecture.md`](docs/architecture.md) | Warstwy, struktura kodu, schemat bazy |
+| [`docs/praca-offline.md`](docs/praca-offline.md) | Instalacja bez dostępu do internetu |
 | [`docs/adr/`](docs/adr/) | Decyzje architektoniczne z uzasadnieniami |
 
 Czytając po raz pierwszy: `vision.md` → `domain-model.md` → `architecture.md`.
@@ -61,6 +62,22 @@ Czytając po raz pierwszy: `vision.md` → `domain-model.md` → `architecture.m
 ## Uruchomienie
 
 > Dostępne po implementacji.
+
+### Środowisko deweloperskie
+
+```bash
+./scripts/pobierz-zaleznosci.sh   # MAJĄC INTERNET — pobiera do vendor/
+./scripts/instaluj-offline.sh     # tworzy .venv, działa bez sieci
+source .venv/bin/activate
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver
+```
+
+Rozdzielenie na dwa skrypty pozwala pracować na maszynie bez dostępu
+do PyPI — szczegóły w [`docs/praca-offline.md`](docs/praca-offline.md).
+
+### Produkcja (Raspberry Pi)
 
 ```bash
 cp .env.example .env                              # ustaw SECRET_KEY
