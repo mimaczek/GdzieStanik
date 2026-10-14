@@ -1,8 +1,15 @@
 # ADR-0004: FastAPI z Jinja2 i HTMX zamiast SPA
 
-- **Status:** zaakceptowany
+- **Status:** ⚠️ **zastąpiony przez [ADR-0007](0007-django-zamiast-fastapi.md)**
 - **Data:** 2026-10-14
 - **Dotyczy:** warstwa prezentacji, proces budowania, wdrożenie
+
+> **Dokument nieaktualny.** Wybór FastAPI został wycofany na rzecz Django
+> jeszcze przed rozpoczęciem implementacji. Powód: koszt własnej
+> implementacji sesji, CSRF, formularzy i panelu zarządzania — oszacowany
+> na ponad tysiąc linii kodu, w tym fragmenty krytyczne dla bezpieczeństwa.
+> Zachowane w repozytorium, bo rozpoznanie wariantów i odrzucenie SPA
+> pozostają aktualne i doprowadziły do obecnego kształtu projektu.
 
 ## Kontekst
 

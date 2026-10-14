@@ -1,9 +1,13 @@
 # GdzieStanik — architektura
 
-> Status: **szkic do dyskusji** · Wersja dokumentu: 0.1 · Data: 2026-10-14
+> Status: **szkic do dyskusji** · Wersja dokumentu: 0.2 · Data: 2026-10-14
 >
 > Dokument opisuje **jak** realizujemy model opisany w `domain-model.md`.
 > Uzasadnienia poszczególnych wyborów są w `adr/`.
+>
+> Zmiany w 0.2: framework zmieniony z FastAPI na Django (ADR-0007).
+> Sesje, CSRF, formularze, migracje i zarządzanie strukturą domu przechodzą
+> na mechanizmy wbudowane.
 
 ---
 
@@ -11,26 +15,26 @@
 
 | Warstwa | Wybór | Uzasadnienie |
 |---|---|---|
-| Język | Python 3.12+ | ADR-0004 |
-| Framework HTTP | FastAPI | ADR-0004 |
-| Szablony | Jinja2 | renderowanie po stronie serwera |
-| Interaktywność | HTMX | bez builda, bez Node (ADR-0004) |
-| CSS | Pico.css lub własny | brak bundlera, jeden plik |
-| ORM | SQLAlchemy 2.x | styl deklaratywny, typowanie |
-| Migracje | Alembic | standard dla SQLAlchemy |
+| Język | Python 3.12+ | |
+| Framework | Django 5.x | ADR-0007 |
+| Szablony | Django Templates | wbudowane |
+| Interaktywność | HTMX | bez builda, bez Node |
+| CSS | Pico.css lub własny | jeden plik, bez bundlera |
+| ORM i migracje | Django ORM | wbudowane |
 | Baza | SQLite w trybie WAL | ADR-0003 |
-| Walidacja | Pydantic v2 | formularze i konfiguracja |
-| Hasła | Argon2 (`argon2-cffi`) | ADR-0005 |
-| Sesje | ciasteczko `HttpOnly` + tabela sesji | ADR-0005 |
-| Obrazy | Pillow | skalowanie przy uploadzie (ADR-0006) |
-| Serwer | Uvicorn | za reverse proxy |
-| Proxy | Caddy | automatyczny HTTPS, prosty config |
-| Testy | pytest + httpx | testy warstwy serwisów i tras |
-| Jakość | ruff + mypy | lint, format i typowanie |
+| Formularze | `django.forms` | walidacja, CSRF, komunikaty |
+| Uwierzytelnianie | `django.contrib.auth` | sesje, hasła, logowanie |
+| Hasła | Argon2 (`argon2-cffi`) | przez `PASSWORD_HASHERS` |
+| Zarządzanie strukturą | `django.contrib.admin` | ADR-0007 |
+| Obrazy | Pillow + `ImageField` | ADR-0006 |
+| Serwer | Gunicorn | za reverse proxy |
+| Proxy | Caddy | automatyczny HTTPS |
+| Testy | pytest + `pytest-django` | |
+| Jakość | ruff + mypy + `django-stubs` | |
 | Uruchomienie | Docker Compose | Raspberry Pi, ARM64 |
 
 **Zasada:** żadnej zależności od Node.js. HTMX i CSS to pliki statyczne
-dołączone do repozytorium, nie pakiety npm.
+w repozytorium, nie pakiety npm. W projekcie nie ma `package.json`.
 
 ## 2. Warstwy
 
@@ -40,241 +44,234 @@ dołączone do repozytorium, nie pakiety npm.
 └────────────────────┬─────────────────────────┘
                      │ HTTP, fragmenty HTML
 ┌────────────────────▼─────────────────────────┐
-│  web/      trasy FastAPI, szablony Jinja     │  ← HTTP, formularze, sesja
+│  views.py + forms.py                         │  ← HTTP, formularze
 ├──────────────────────────────────────────────┤
-│  services/ logika domenowa                   │  ← reguły L*, P*, N*, T*, U*
+│  admin.py            zarządzanie strukturą   │  ← rzadkie operacje
 ├──────────────────────────────────────────────┤
-│  repositories/  dostęp do danych             │  ← zapytania SQLAlchemy
+│  services/           logika domenowa         │  ← reguły L*, P*, N*, W*
 ├──────────────────────────────────────────────┤
-│  models/   encje SQLAlchemy                  │  ← schemat bazy
+│  models.py + managers.py                     │  ← schemat, QuerySety
 └──────────────────────────────────────────────┘
 ```
 
 **Reguły przepływu:**
 
-- **A1.** Warstwa `web/` nie zawiera logiki domenowej — tylko odbiór żądania,
-  wywołanie serwisu i wybór szablonu.
-- **A2.** Warstwa `services/` nie wie nic o HTTP: żadnych `Request`,
-  `Response` ani kodów statusu. Przyjmuje i zwraca obiekty domenowe,
+- **A1.** Widoki nie zawierają logiki domenowej — odbierają żądanie,
+  wołają serwis, wybierają szablon.
+- **A2.** Warstwa `services/` nie wie nic o HTTP: żadnych `HttpRequest`,
+  `HttpResponse` ani kodów statusu. Przyjmuje i zwraca obiekty domenowe,
   rzuca wyjątki domenowe.
-- **A3.** Zapytania do bazy wyłącznie w `repositories/`. Serwis nie buduje
-  SQL-a ani nie używa `session.query` bezpośrednio.
-- **A4.** Walidacja reguł biznesowych zawsze w serwisie, nawet jeśli baza
-  ma odpowiadające ograniczenie. Ograniczenia w bazie to siatka
-  bezpieczeństwa, nie główny mechanizm.
+- **A3.** Reguły biznesowe wymagające więcej niż jednego modelu zawsze
+  w serwisie. Metody modeli tylko dla operacji lokalnych dla encji.
+- **A4.** Walidacja w serwisie, nawet jeśli baza ma odpowiadające
+  ograniczenie. Ograniczenia bazy to siatka bezpieczeństwa.
+- **A5.** Panel administracyjny też wywołuje serwisy — przez nadpisane
+  `save_model()` i `delete_model()`. Inaczej ominąłby reguły domenowe.
 
-Uzasadnienie A2: to warunek taniego dołożenia JSON API w przyszłości —
-nowa warstwa `api/` wywoła te same serwisy.
+**Uwaga:** warstwa `services/` nie jest idiomatyczna dla Django, które
+preferuje grube modele. Zachowujemy ją, bo reguł jest około trzydziestu
+i rozsypanie ich po modelach utrudniłoby weryfikację. Wymaga to dyscypliny —
+framework w tym nie pomoże (ADR-0007).
+
+Reguła A5 jest nieoczywista i łatwa do przeoczenia: domyślnie admin zapisuje
+obiekty bezpośrednio przez ORM, z pominięciem serwisów.
 
 ## 3. Struktura katalogów
 
 ```
 gdziestanik/
-├── docs/                        dokumentacja projektu
-├── src/gdziestanik/
-│   ├── main.py                  tworzenie aplikacji, montowanie tras
-│   ├── config.py                ustawienia z env (Pydantic Settings)
-│   ├── database.py              silnik, sesja, PRAGMA dla SQLite
+├── docs/
+├── config/                      projekt Django
+│   ├── settings/
+│   │   ├── base.py              wspólne
+│   │   ├── dev.py
+│   │   └── prod.py
+│   ├── urls.py
+│   └── wsgi.py
+│
+├── accounts/                    aplikacja: użytkownicy
+│   ├── models.py                User na AbstractUser
+│   ├── admin.py
+│   └── migrations/
+│
+├── inventory/                   aplikacja: rdzeń domeny
+│   ├── models.py                Location, Item, Tag
+│   ├── managers.py              QuerySety: drzewo, wyszukiwanie
+│   ├── admin.py                 zarządzanie strukturą domu
+│   ├── forms.py                 formularze dodawania i edycji
+│   ├── views.py                 wyszukiwanie, przeglądanie, dodawanie
+│   ├── urls.py
+│   ├── signals.py               wypełnianie name_norm przy zapisie
+│   ├── exceptions.py            wyjątki domenowe
 │   │
-│   ├── models/                  encje SQLAlchemy
-│   │   ├── base.py              klasa bazowa + miksin znaczników czasu
-│   │   ├── location.py          Lokalizacja
-│   │   ├── item.py              Przedmiot
-│   │   ├── tag.py               Tag + tabele łączące
-│   │   └── user.py              Użytkownik, Sesja
-│   │
-│   ├── repositories/            dostęp do danych
-│   │   ├── location_repo.py
-│   │   ├── item_repo.py
-│   │   └── search_repo.py       zapytania wyszukiwania
-│   │
-│   ├── services/                logika domenowa
+│   ├── services/
 │   │   ├── location_service.py  reguły L1–L6
 │   │   ├── item_service.py      reguły P1–P11
 │   │   ├── naming_service.py    reguły N1–N5 (sufiksy)
 │   │   ├── path_service.py      budowanie ścieżek, cache drzewa
 │   │   ├── search_service.py    reguły W1–W7
-│   │   ├── photo_service.py     skalowanie i zapis zdjęć
-│   │   └── auth_service.py      logowanie, sesje, hasła
+│   │   └── photo_service.py     skalowanie zdjęć
 │   │
-│   ├── web/                     warstwa HTTP
-│   │   ├── deps.py              zależności: sesja DB, bieżący użytkownik
-│   │   ├── forms.py             modele Pydantic dla formularzy
-│   │   ├── csrf.py              generowanie i walidacja tokenu
-│   │   ├── errors.py            mapowanie wyjątków domenowych na HTTP
-│   │   └── routes/
-│   │       ├── auth.py          logowanie, wylogowanie
-│   │       ├── search.py        wyszukiwanie (trasa krytyczna)
-│   │       ├── locations.py     drzewo i lokalizacje
-│   │       ├── items.py         przedmioty
-│   │       └── photos.py        serwowanie zdjęć
+│   ├── templatetags/
+│   │   └── inventory_extras.py  filtr formatujący ścieżkę
 │   │
-│   ├── templates/
-│   │   ├── base.html            layout, nagłówek, pole wyszukiwania
-│   │   ├── partials/            fragmenty zwracane przez HTMX
+│   ├── templates/inventory/
+│   │   ├── base.html            layout, pole wyszukiwania
+│   │   ├── partials/            fragmenty dla HTMX
 │   │   │   ├── search_results.html
 │   │   │   ├── tree_node.html
 │   │   │   └── item_form.html
 │   │   ├── search.html
-│   │   ├── location.html
-│   │   └── item.html
+│   │   ├── location_detail.html
+│   │   └── item_detail.html
 │   │
-│   └── static/
-│       ├── htmx.min.js          dołączony do repo, nie z CDN
-│       ├── style.css
-│       └── icons/
+│   ├── migrations/
+│   └── tests/
+│       ├── test_rules/          po jednym teście na regułę
+│       ├── test_services/
+│       └── test_views/
 │
-├── migrations/                  Alembic
-├── tests/
-│   ├── conftest.py
-│   ├── test_services/           testy logiki domenowej (większość)
-│   ├── test_web/                testy tras
-│   └── test_rules/              po jednym teście na regułę L*, P*, N*
+├── static/
+│   ├── htmx.min.js              w repozytorium, nie z CDN
+│   └── style.css
 │
-├── scripts/
-│   ├── create_user.py           zakładanie konta (reguła U1)
-│   └── backup.sh                kopia bazy i zdjęć
-│
+├── manage.py
 ├── docker-compose.yml
 ├── Dockerfile
 ├── pyproject.toml
 └── .env.example
 ```
 
-## 4. Schemat bazy danych
+## 4. Modele
 
-### 4.1 `locations`
+### 4.1 `accounts.User`
 
-```sql
-CREATE TABLE locations (
-    id            INTEGER PRIMARY KEY,
-    name          TEXT    NOT NULL,
-    name_norm     TEXT    NOT NULL,          -- bez diakrytyków, małe litery
-    parent_id     INTEGER REFERENCES locations(id) ON DELETE RESTRICT,
-    kind          TEXT,                       -- dom|pokój|mebel|półka|...
-    description   TEXT,
-    photo_path    TEXT,
-    sort_order    INTEGER NOT NULL DEFAULT 0,
-    created_at    TEXT    NOT NULL,
-    updated_at    TEXT    NOT NULL,
-    updated_by_id INTEGER REFERENCES users(id) ON DELETE SET NULL
-);
-
--- L2: unikalność nazwy wśród rodzeństwa
-CREATE UNIQUE INDEX ux_loc_sibling
-    ON locations(COALESCE(parent_id, -1), name_norm);
-
-CREATE INDEX ix_loc_parent ON locations(parent_id);
+```python
+class User(AbstractUser):
+    display_name = models.CharField(max_length=100)
 ```
 
-Reguła L6 (unikalność nazw domów) wynika z `ux_loc_sibling`: wszystkie
-korzenie mają `parent_id IS NULL`, więc są rodzeństwem. Stąd `COALESCE`,
-bo SQLite traktuje `NULL` jako wartości różne w indeksie unikalnym.
+Ustawiony jako `AUTH_USER_MODEL` **przed pierwszą migracją** — późniejsza
+zmiana jest w Django bardzo kosztowna. Reguły U1–U5 realizuje w całości
+`django.contrib.auth`: `is_active` zamiast usuwania, `createsuperuser`
+zamiast własnego skryptu, Argon2 przez `PASSWORD_HASHERS`.
 
-### 4.2 `items`
+### 4.2 `inventory.Location`
 
-```sql
-CREATE TABLE items (
-    id             INTEGER PRIMARY KEY,
-    name           TEXT    NOT NULL,
-    name_norm      TEXT    NOT NULL,
-    description    TEXT,
-    quantity       INTEGER NOT NULL DEFAULT 1,
-    location_id    INTEGER REFERENCES locations(id) ON DELETE RESTRICT,
-    parent_item_id INTEGER REFERENCES items(id)     ON DELETE CASCADE,
-    home_id        INTEGER NOT NULL REFERENCES locations(id),
-    owner_id       INTEGER REFERENCES users(id)     ON DELETE SET NULL,
-    photo_path     TEXT,
-    created_at     TEXT    NOT NULL,
-    updated_at     TEXT    NOT NULL,
-    updated_by_id  INTEGER REFERENCES users(id)     ON DELETE SET NULL,
+```python
+class Location(models.Model):
+    name       = models.CharField(max_length=100)
+    name_norm  = models.CharField(max_length=100, editable=False)
+    parent     = models.ForeignKey("self", null=True, blank=True,
+                                   on_delete=models.PROTECT,
+                                   related_name="children")
+    kind       = models.CharField(max_length=20, choices=Kind, blank=True)
+    description = models.TextField(blank=True)
+    photo      = models.ImageField(upload_to=photo_path, blank=True)
+    sort_order = models.IntegerField(default=0)
+    # created_at, updated_at, updated_by — z miksina
 
-    -- P1: dokładnie jeden rodzic
-    CONSTRAINT ck_single_parent CHECK (
-        (location_id IS NOT NULL AND parent_item_id IS NULL) OR
-        (location_id IS NULL     AND parent_item_id IS NOT NULL)
-    ),
-    -- P3: ilość dodatnia
-    CONSTRAINT ck_quantity_positive CHECK (quantity > 0)
-);
-
--- N1: unikalność nazwy w obrębie domu
-CREATE UNIQUE INDEX ux_item_home_name ON items(home_id, name_norm);
-
-CREATE INDEX ix_item_location ON items(location_id);
-CREATE INDEX ix_item_parent   ON items(parent_item_id);
-CREATE INDEX ix_item_name     ON items(name_norm);
+    class Meta:
+        constraints = [
+            # L2: unikalność nazwy wśród rodzeństwa
+            models.UniqueConstraint(
+                fields=["parent", "name_norm"],
+                name="uq_location_sibling",
+            ),
+            # L6: unikalność nazw domów (parent IS NULL)
+            models.UniqueConstraint(
+                fields=["name_norm"],
+                condition=Q(parent__isnull=True),
+                name="uq_home_name",
+            ),
+        ]
 ```
 
-Uwaga do `ON DELETE CASCADE` przy `parent_item_id`: realizuje regułę P5,
-ale kaskada w bazie działa po cichu. Serwis **musi** wcześniej policzyć
-zawartość i pokazać potwierdzenie — baza jest tu zabezpieczeniem przed
-osieroconymi wierszami, nie mechanizmem interfejsu.
+Dwa osobne ograniczenia, bo SQLite traktuje każdy `NULL` jako wartość
+różną — pierwsze nie zadziałałoby dla korzeni. Django rozwiązuje to
+ograniczeniem warunkowym, czystszym niż `COALESCE` w surowym SQL-u.
 
-### 4.3 `tags` i tabele łączące
+### 4.3 `inventory.Item`
 
-```sql
-CREATE TABLE tags (
-    id        INTEGER PRIMARY KEY,
-    name      TEXT NOT NULL,
-    name_norm TEXT NOT NULL UNIQUE
-);
+```python
+class Item(models.Model):
+    name        = models.CharField(max_length=200)
+    name_norm   = models.CharField(max_length=200, editable=False)
+    description = models.TextField(blank=True)
+    quantity    = models.PositiveIntegerField(default=1)
+    location    = models.ForeignKey(Location, null=True, blank=True,
+                                    on_delete=models.PROTECT,
+                                    related_name="items")
+    parent_item = models.ForeignKey("self", null=True, blank=True,
+                                    on_delete=models.CASCADE,
+                                    related_name="contents")
+    home        = models.ForeignKey(Location, on_delete=models.CASCADE,
+                                    related_name="+", editable=False)
+    owner       = models.ForeignKey(User, null=True, blank=True,
+                                    on_delete=models.SET_NULL)
+    photo       = models.ImageField(upload_to=photo_path, blank=True)
+    tags        = models.ManyToManyField(Tag, related_name="items")
 
-CREATE TABLE item_tags (
-    item_id INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    tag_id  INTEGER NOT NULL REFERENCES tags(id)  ON DELETE CASCADE,
-    PRIMARY KEY (item_id, tag_id)
-);
-
-CREATE TABLE location_tags (
-    location_id INTEGER NOT NULL REFERENCES locations(id) ON DELETE CASCADE,
-    tag_id      INTEGER NOT NULL REFERENCES tags(id)      ON DELETE CASCADE,
-    PRIMARY KEY (location_id, tag_id)
-);
+    class Meta:
+        constraints = [
+            # P1: dokładnie jeden rodzic
+            models.CheckConstraint(
+                condition=(
+                    Q(location__isnull=False, parent_item__isnull=True) |
+                    Q(location__isnull=True,  parent_item__isnull=False)
+                ),
+                name="ck_item_single_parent",
+            ),
+            # P3: ilość dodatnia
+            models.CheckConstraint(
+                condition=Q(quantity__gt=0),
+                name="ck_item_quantity_positive",
+            ),
+            # N1: unikalność nazwy w obrębie domu
+            models.UniqueConstraint(
+                fields=["home", "name_norm"],
+                name="uq_item_home_name",
+            ),
+        ]
+        indexes = [models.Index(fields=["name_norm"])]
 ```
 
-Reguła T4 (wspólna pula tagów) jest tu realizowana przez dwie tabele
-łączące wskazujące jedną tabelę `tags`.
+`on_delete=CASCADE` przy `parent_item` realizuje regułę P5, ale działa
+po cichu. Serwis **musi** wcześniej policzyć zawartość i pokazać
+potwierdzenie — ORM jest tu zabezpieczeniem przed osieroconymi wierszami,
+nie mechanizmem interfejsu.
 
-### 4.4 `users` i `sessions`
+`home` jest zdenormalizowane (reguła P7), wypełniane w serwisie przy
+zapisie i aktualizowane kaskadowo przy przenosinach.
 
-```sql
-CREATE TABLE users (
-    id            INTEGER PRIMARY KEY,
-    login         TEXT    NOT NULL UNIQUE,
-    display_name  TEXT    NOT NULL,
-    password_hash TEXT    NOT NULL,
-    is_active     INTEGER NOT NULL DEFAULT 1,
-    created_at    TEXT    NOT NULL
-);
+### 4.4 `inventory.Tag`
 
-CREATE TABLE sessions (
-    token      TEXT PRIMARY KEY,         -- losowy, 32 bajty, base64url
-    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-    created_at TEXT NOT NULL,
-    expires_at TEXT NOT NULL,
-    user_agent TEXT
-);
-
-CREATE INDEX ix_sessions_expires ON sessions(expires_at);
+```python
+class Tag(models.Model):
+    name      = models.CharField(max_length=50)
+    name_norm = models.CharField(max_length=50, unique=True, editable=False)
 ```
 
-Sesje w tabeli, nie w podpisanym ciasteczku — pozwala unieważnić sesję
-natychmiast po wylogowaniu lub zmianie hasła (ADR-0005).
+Relacje `ManyToMany` z `Item` i `Location` realizują regułę T4 —
+wspólna pula tagów dla obu typów.
 
 ### 4.5 Konfiguracja SQLite
 
-Przy każdym połączeniu:
+Django nie ustawia trybu WAL samo. Potrzebny sygnał przy nawiązaniu
+połączenia:
 
-```sql
-PRAGMA journal_mode = WAL;      -- równoległy odczyt podczas zapisu
-PRAGMA foreign_keys = ON;       -- w SQLite domyślnie wyłączone
-PRAGMA busy_timeout = 5000;     -- czekaj na blokadę zapisu
-PRAGMA synchronous = NORMAL;    -- wystarczające przy WAL
+```python
+@receiver(connection_created)
+def configure_sqlite(sender, connection, **kwargs):
+    if connection.vendor == "sqlite":
+        cursor = connection.cursor()
+        cursor.execute("PRAGMA journal_mode = WAL")
+        cursor.execute("PRAGMA synchronous = NORMAL")
+        cursor.execute("PRAGMA busy_timeout = 5000")
 ```
 
-`foreign_keys = ON` jest krytyczne — bez tego wszystkie `REFERENCES`
-i `ON DELETE` powyżej są martwym zapisem.
+Klucze obce Django włącza samo (inaczej niż przy surowym SQLite),
+ale `CheckConstraint` wymaga SQLite 3.37+ dla pełnej obsługi.
 
 ## 5. Mechanizmy kluczowe
 
@@ -293,13 +290,14 @@ def normalize(text: str) -> str:
 Polskie `ł` wymaga osobnej obsługi — nie jest literą z diakrytykiem
 w rozumieniu Unicode, więc dekompozycja NFKD go nie rozkłada.
 
-Kolumny `name_norm` wypełniane są w zdarzeniach SQLAlchemy przy zapisie,
-nie w kodzie wywołującym — inaczej któreś miejsce na pewno o tym zapomni.
+Wypełnianie `name_norm` w `pre_save` (`signals.py`), nie w kodzie
+wywołującym — inaczej któreś miejsce na pewno o tym zapomni. Dotyczy to
+również zapisów z panelu administracyjnego.
 
 ### 5.2 Budowanie ścieżki
 
-Dwie pętle w górę (najpierw przedmioty, potem lokalizacje) z cache'owanym
-drzewem lokalizacji w pamięci:
+Dwie pętle w górę (najpierw przedmioty po `parent_item`, potem lokalizacje
+po `parent`) z cache'owanym drzewem lokalizacji:
 
 ```
 PathService
@@ -307,36 +305,34 @@ PathService
 ├── invalidate()                     po każdej zmianie lokalizacji
 ├── path_for_location(id) -> list[str]
 └── path_for_item(item)   -> list[str]
-        wchodzi po parent_item_id (zwykle 0–3 kroki),
-        potem korzysta z cache dla części lokalizacyjnej
 ```
 
 Przy 50–200 lokalizacjach na dom cache zajmuje kilkadziesiąt kilobajtów.
-Unieważnienie całości przy każdej zmianie jest wystarczające — zmiany
-struktury są rzadkie w porównaniu z odczytami.
+Unieważnianie całości przy każdej zmianie wystarcza — zmiany struktury są
+rzadkie w porównaniu z odczytami.
 
 ### 5.3 Wykrywanie cykli (L1, P6)
 
 Przed zmianą rodzica: wejście w górę od nowego rodzica z licznikiem kroków.
-Jeśli po drodze napotkamy przenoszony węzeł — błąd walidacji. Licznik chroni
-przed zapętleniem na danych już uszkodzonych.
+Napotkanie przenoszonego węzła to błąd walidacji. Licznik chroni przed
+zapętleniem na danych już uszkodzonych.
 
 ### 5.4 Nadawanie sufiksów (N2, N3)
 
 ```
-NamingService.suggest_name(home_id, "młotek") -> "młotek_4"
+NamingService.suggest_name(home, "młotek") -> "młotek_4"
 ```
 
-Znajduje największy użyty sufiks dla danego rdzenia w obrębie domu
-i zwraca kolejny. Nie szuka luk (N3 — licznik nie cofa się).
+Znajduje największy użyty sufiks dla rdzenia w obrębie domu i zwraca
+kolejny. Nie szuka luk (N3 — licznik się nie cofa).
 
-Serwis **tylko proponuje**. Zapis następuje dopiero po zatwierdzeniu przez
+Serwis **tylko proponuje**. Zapis następuje po zatwierdzeniu przez
 użytkownika — nazwa nigdy nie zmienia się cicho.
 
 ### 5.5 Wyszukiwanie
 
-Jedno zapytanie `UNION ALL` po przedmiotach, tagach i lokalizacjach,
-z kolumną rangi realizującą regułę W5:
+QuerySet łączący przedmioty, tagi i lokalizacje, z adnotacją rangi
+realizującą regułę W5:
 
 | Dopasowanie | Ranga |
 |---|---|
@@ -347,49 +343,96 @@ z kolumną rangi realizującą regułę W5:
 | opis przedmiotu | 5 |
 
 Przy wymaganiu W6 (poniżej 300 ms dla 5000 przedmiotów na Raspberry Pi)
-indeks na `name_norm` plus `LIKE 'fraza%'` powinien wystarczyć. Jeśli nie —
-FTS5 jako następny krok, ale dopiero po pomiarze.
+indeks na `name_norm` z `startswith` i `contains` powinien wystarczyć.
+Jeśli nie — FTS5 przez surowe zapytanie, ale dopiero po pomiarze.
+
+Kluczowe: `select_related` i `prefetch_related` przy pobieraniu wyników,
+inaczej budowanie ścieżek wygeneruje lawinę zapytań.
 
 ### 5.6 Obsługa zdjęć
 
 ```
-upload → walidacja typu (JPEG/PNG/WebP, max 20 MB)
-       → Pillow: EXIF-transpose, resize do 1600 px, konwersja na WebP
+upload → walidacja typu i rozmiaru (max 20 MB)
+       → Pillow: EXIF-transpose, resize do 1600 px, WebP
        → miniatura 300 px
-       → zapis pod UUID w /data/photos/{rok}/{miesiąc}/
-       → w bazie tylko ścieżka względna
+       → zapis pod UUID w MEDIA_ROOT/photos/{rok}/{miesiąc}/
+       → w bazie ścieżka przez ImageField
 ```
 
-Oryginał nie jest zachowywany (G4). Katalog `/data` to wolumen Dockera
-montowany z **dysku USB/SSD, nie z karty SD** (ADR-0006).
+Przetwarzanie w `PhotoService`, wywoływane przed zapisem modelu.
+Oryginał nie jest zachowywany (G4), metadane EXIF usuwane poza orientacją.
 
-## 6. Bezpieczeństwo
+`MEDIA_ROOT` wskazuje na `/data/photos`, czyli wolumen z dysku USB/SSD,
+nie z karty SD (ADR-0006).
+
+## 6. Panel administracyjny
+
+Pokrywa operacje wykonywane rzadko i przy komputerze:
+
+| Obszar | Zakres |
+|---|---|
+| Lokalizacje | tworzenie struktury domu, edycja drzewa, zdjęcia pojemników |
+| Użytkownicy | zakładanie kont, dezaktywacja, zmiana haseł |
+| Tagi | porządkowanie, scalanie |
+| Przedmioty | edycja masowa, przeglądanie tabelaryczne |
+
+Konfiguracja: `list_filter` po domu i lokalizacji, `search_fields`
+po `name_norm`, `raw_id_fields` dla relacji (inaczej listy rozwijane
+z tysiącami pozycji), `list_select_related` przeciw zapytaniom N+1.
+
+**Reguła A5 jest tu krytyczna** — `save_model()` i `delete_model()` muszą
+wywoływać serwisy, inaczej admin ominie walidację cykli, nadawanie
+sufiksów i aktualizację `home`.
+
+Panel jest nieużyteczny na telefonie — dlatego wyszukiwanie i szybkie
+dodawanie rzeczy mają własne widoki.
+
+## 7. Własne widoki
+
+Tylko tam, gdzie wygoda ma znaczenie:
+
+| Widok | Ścieżka | Rola |
+|---|---|---|
+| Wyszukiwanie | `/` | **trasa krytyczna** — pole, wyniki na żywo przez HTMX, pełne ścieżki |
+| Szczegóły przedmiotu | `/item/<id>/` | zdjęcie, ścieżka, zawartość jeśli pojemnik |
+| Szybkie dodanie | `/add/` | minimum pól, aparat, wybór lokalizacji |
+| Przeglądanie drzewa | `/location/<id>/` | rozwijane węzły przez HTMX |
+| Przeniesienie | `/item/<id>/move/` | zmiana rodzica z obsługą kolizji nazw (N5) |
+
+Wszystkie wymagają zalogowania (`LoginRequiredMiddleware` w Django 5.1+).
+
+## 8. Bezpieczeństwo
 
 | Zagadnienie | Realizacja |
 |---|---|
-| Hasła | Argon2id, domyślne parametry `argon2-cffi` |
-| Sesja | token 32 bajty z `secrets.token_urlsafe`, ciasteczko `HttpOnly`, `SameSite=Lax`, `Secure` przy HTTPS |
-| Czas życia sesji | 30 dni, przedłużana przy aktywności |
-| CSRF | token w sesji, ukryte pole w każdym formularzu, walidacja dla POST/PUT/DELETE |
-| Ochrona przed zgadywaniem haseł | opóźnienie i limit prób logowania na konto |
-| Upload plików | biała lista typów, limit rozmiaru, nazwa z UUID, ponowne kodowanie przez Pillow |
-| SQL injection | wyłącznie zapytania parametryzowane przez SQLAlchemy |
-| XSS | autoescape Jinja2 włączony, `|safe` zabronione w szablonach |
+| Hasła | Argon2id — pierwszy w `PASSWORD_HASHERS` |
+| Sesje | `django.contrib.sessions`, `HttpOnly`, `SameSite=Lax` |
+| CSRF | `CsrfViewMiddleware`, token w `{% csrf_token %}` |
+| CSRF w HTMX | `hx-headers` na `<body>` z `X-CSRFToken` |
+| Dostęp | `LoginRequiredMiddleware` globalnie |
+| Upload | walidacja typu, limit rozmiaru, ponowne kodowanie przez Pillow |
+| SQL injection | ORM, zero surowych zapytań z interpolacją |
+| XSS | autoescape w szablonach, `\|safe` zabronione |
+| HTTPS | Caddy; `SECURE_*` i `SESSION_COOKIE_SECURE` w `prod.py` |
 
-HTMX wymaga przekazywania tokenu CSRF w żądaniach — rozwiązane przez
-atrybut `hx-headers` na elemencie `<body>` w `base.html`.
+Wszystko poza obsługą uploadu to konfiguracja, nie kod — na tym polegała
+zmiana frameworka (ADR-0007).
 
-## 7. Wdrożenie
+Dopóki HTTPS nie działa, ciasteczko sesyjne leci otwartym tekstem —
+świadomie przyjęte ryzyko ograniczone do sieci lokalnej.
+
+## 9. Wdrożenie
 
 ```yaml
-# docker-compose.yml (szkic)
 services:
   app:
     build: .
+    command: gunicorn config.wsgi --bind 0.0.0.0:8000 --workers 2
     environment:
-      - DATABASE_PATH=/data/gdziestanik.db
-      - PHOTOS_PATH=/data/photos
+      - DJANGO_SETTINGS_MODULE=config.settings.prod
       - SECRET_KEY=${SECRET_KEY}
+      - DATABASE_PATH=/data/gdziestanik.db
+      - MEDIA_ROOT=/data/photos
     volumes:
       - /mnt/ssd/gdziestanik:/data      # dysk USB, nie karta SD
     restart: unless-stopped
@@ -403,48 +446,57 @@ services:
     restart: unless-stopped
 ```
 
-**Wymagania dla Raspberry Pi:**
+**Uwagi dla Raspberry Pi:**
 
-- obraz bazowy `python:3.12-slim` dla ARM64,
-- Pillow ma gotowe pakiety dla ARM64 — brak kompilacji przy instalacji,
-- cały katalog `/data` na dysku zewnętrznym (baza i zdjęcia),
-- backup: `sqlite3 .backup` plus `rsync` katalogu zdjęć, codziennie przez cron.
+- obraz `python:3.12-slim` dla ARM64,
+- Pillow i `argon2-cffi` mają gotowe pakiety ARM64 — brak kompilacji,
+- **dwa procesy Gunicorna** ze względu na cache ścieżek (§5.2) —
+  przy większej liczbie trzeba unieważniać go międzyprocesowo (pytanie A2),
+- `collectstatic` przy budowaniu obrazu, pliki statyczne przez WhiteNoise,
+- backup: `sqlite3 .backup` plus `rsync` zdjęć, codziennie przez cron.
 
-## 8. Strategia testów
+## 10. Strategia testów
 
 | Poziom | Zakres | Priorytet |
 |---|---|---|
-| Reguły domenowe | po jednym teście na L1–L6, P1–P11, N1–N5, T1–T4, U1–U5 | najwyższy |
+| Reguły domenowe | po jednym teście na L1–L6, P1–P11, N1–N5, T1–T4 | najwyższy |
 | Serwisy | ścieżki, cykle, sufiksy, wyszukiwanie | wysoki |
-| Trasy HTTP | formularze, przekierowania, CSRF, autoryzacja | średni |
-| Wydajność | W6: 5000 przedmiotów, pomiar czasu wyszukiwania | przed wydaniem |
+| Widoki | formularze, przekierowania, dostęp bez logowania | średni |
+| Admin | czy `save_model` wywołuje serwisy (reguła A5) | wysoki |
+| Wydajność | W6: 5000 przedmiotów, pomiar czasu | przed wydaniem |
 
-Każda reguła z `domain-model.md` ma odpowiadający test o nazwie zawierającej
-jej identyfikator (`test_p1_dokladnie_jeden_rodzic`). Dzięki temu widać
-wprost, czy reguła jest sprawdzana.
+Nazwa testu zawiera identyfikator reguły (`test_p1_dokladnie_jeden_rodzic`),
+dzięki czemu widać wprost, które reguły są sprawdzane.
 
-## 9. Kolejność implementacji
+Test dla A5 jest nieoczywisty, a bez niego łatwo o sytuację, w której
+aplikacja pilnuje reguł, a admin je omija.
 
-1. **Szkielet** — projekt, konfiguracja, połączenie z bazą, PRAGMA
-2. **Modele i migracje** — wszystkie tabele, ograniczenia, indeksy
-3. **Normalizacja** — funkcja i zdarzenia SQLAlchemy, testy
-4. **Uwierzytelnianie** — użytkownicy, sesje, CSRF, logowanie
-5. **Lokalizacje** — CRUD, drzewo, cykle, cache ścieżek
-6. **Przedmioty** — CRUD, dwaj rodzice, sufiksy nazw
-7. **Wyszukiwanie** — trasa krytyczna, pełne ścieżki w wynikach
-8. **Zdjęcia** — upload, skalowanie, serwowanie
-9. **Dopracowanie UI** — HTMX, wygoda na telefonie
-10. **Docker i wdrożenie** — obraz ARM64, Caddy, backup
+## 11. Kolejność implementacji
 
-Punkty 1–7 dają działającą aplikację odpowiadającą na pytanie „gdzie jest X?”.
+1. **Szkielet** — projekt, ustawienia, PRAGMA dla SQLite
+2. **`accounts`** — własny model User **przed pierwszą migracją**
+3. **Modele `inventory`** — ograniczenia, indeksy, migracje
+4. **Normalizacja** — funkcja, sygnały, testy
+5. **Serwisy** — ścieżki, cykle, sufiksy
+6. **Admin** — zarządzanie strukturą, reguła A5
+7. **Wyszukiwanie** — trasa krytyczna, pełne ścieżki
+8. **Dodawanie i przenoszenie** — formularze, HTMX
+9. **Zdjęcia** — upload, skalowanie
+10. **Docker i wdrożenie** — ARM64, Caddy, backup
 
-## 10. Pytania otwarte
+Po kroku 7 aplikacja odpowiada na pytanie „gdzie jest X?”, a strukturę domu
+można wprowadzać przez panel administracyjny.
+
+Krok 2 jest nieodwracalny — zmiana `AUTH_USER_MODEL` po pierwszej migracji
+wymaga ręcznego przepisywania danych.
+
+## 12. Pytania otwarte
 
 | # | Pytanie | Kontekst |
 |---|---|---|
-| **A1** | Czy `kind` lokalizacji to enum w bazie, czy wolny tekst? | Enum jest czystszy, ale każde nowe pojęcie wymaga migracji |
-| **A2** | Cache ścieżek przy wielu procesach Uvicorn? | Przy jednym procesie problemu nie ma; przy kilku trzeba unieważniać międzyprocesowo |
-| **A3** | Czy serwować zdjęcia przez Caddy zamiast aplikacji? | Szybsze, ale omija kontrolę dostępu |
+| **A1** | `kind` jako `choices` czy wolny tekst? | `choices` nie wymaga migracji przy zmianie — wartości są w kodzie |
+| **A2** | Cache ścieżek przy wielu procesach Gunicorna | Przy dwóch procesach cache może się rozjechać. Opcje: jeden proces, cache w Django cache framework, albo unieważnianie przez sygnał |
+| **A3** | Serwować zdjęcia przez Caddy zamiast Django? | Szybsze, ale omija kontrolę dostępu |
 
 ---
 
@@ -452,4 +504,5 @@ Punkty 1–7 dają działającą aplikację odpowiadającą na pytanie „gdzie 
 
 - [`vision.md`](vision.md) — problem i zakres
 - [`domain-model.md`](domain-model.md) — encje i reguły realizowane przez ten schemat
-- [`adr/`](adr/) — uzasadnienia wyborów technicznych
+- [`adr/0007-django-zamiast-fastapi.md`](adr/0007-django-zamiast-fastapi.md) — wybór frameworka
+- [`adr/`](adr/) — pozostałe decyzje

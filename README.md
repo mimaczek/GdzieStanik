@@ -36,10 +36,14 @@ ważności, dostępu spoza domu. Uzasadnienia w `docs/vision.md` §6.
 
 | | |
 |---|---|
-| Backend | Python 3.12, FastAPI, SQLAlchemy 2.x |
-| Frontend | Jinja2 + HTMX — **bez Node.js i bez procesu budowania** |
+| Backend | Python 3.12, Django 5.x |
+| Frontend | szablony Django + HTMX — **bez Node.js i bez procesu budowania** |
 | Baza | SQLite w trybie WAL |
 | Wdrożenie | Docker Compose na Raspberry Pi, w sieci domowej |
+
+Strukturą domu i kontami zarządza panel administracyjny Django. Własne
+widoki obsługują to, co musi być wygodne na telefonie: wyszukiwanie
+i szybkie dodawanie rzeczy.
 
 Wybory uzasadnione w `docs/adr/`.
 
@@ -59,12 +63,14 @@ Czytając po raz pierwszy: `vision.md` → `domain-model.md` → `architecture.m
 > Dostępne po implementacji.
 
 ```bash
-cp .env.example .env     # ustaw SECRET_KEY
+cp .env.example .env                              # ustaw SECRET_KEY
 docker compose up -d
-python scripts/create_user.py     # pierwsze konto
+docker compose exec app python manage.py migrate
+docker compose exec app python manage.py createsuperuser
 ```
 
 Aplikacja nasłuchuje na porcie 8000, zwykle za reverse proxy Caddy.
+Panel administracyjny pod `/admin/`.
 
 ## Dane i backup
 

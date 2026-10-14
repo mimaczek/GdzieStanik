@@ -18,22 +18,27 @@ sygnałami ostrzegawczymi.
 | [0001](0001-przedmiot-jako-pojemnik.md) | Przedmiot może zawierać inne przedmioty | zaakceptowany |
 | [0002](0002-unikalnosc-nazw-przedmiotow.md) | Nazwy przedmiotów unikalne w obrębie domu | zaakceptowany |
 | [0003](0003-sqlite-jako-baza.md) | SQLite jako baza danych | zaakceptowany |
-| [0004](0004-fastapi-jinja-htmx.md) | FastAPI z Jinja2 i HTMX zamiast SPA | zaakceptowany |
-| [0005](0005-sesje-i-csrf.md) | Uwierzytelnianie sesją w ciasteczku, nie JWT | zaakceptowany |
+| [0004](0004-fastapi-jinja-htmx.md) | ~~FastAPI z Jinja2 i HTMX zamiast SPA~~ | zastąpiony przez 0007 |
+| [0005](0005-sesje-i-csrf.md) | ~~Uwierzytelnianie sesją w ciasteczku, nie JWT~~ | zastąpiony przez 0007 |
 | [0006](0006-przechowywanie-zdjec.md) | Zdjęcia skalowane przy uploadzie, dane poza kartą SD | zaakceptowany |
+| [0007](0007-django-zamiast-fastapi.md) | Django zamiast FastAPI | zaakceptowany |
 
 ## Zależności między decyzjami
 
 ```
-0004 (Jinja zamiast SPA)
-  └─> 0005 (sesje zamiast JWT, własny CSRF)
+0004 (odrzucenie SPA)              [zastąpiony]
+  └─> 0005 (sesje zamiast JWT)     [zastąpiony]
+        └─> 0007 (Django dostarcza sesje i CSRF gotowe)
 
-0001 (parent_item_id, dom_id)
-  └─> 0002 (unikalność nazw opiera się na dom_id)
+0001 (parent_item_id, home)
+  └─> 0002 (unikalność nazw opiera się na home)
 
 0003 (SQLite, plik bazy)
   └─> 0006 (plik bazy i zdjęcia na dysku zewnętrznym)
 ```
+
+Decyzja o rezygnacji z SPA na rzecz renderowania serwerowego pozostaje
+w mocy — zmienił się wyłącznie framework, który to realizuje.
 
 ## Format
 

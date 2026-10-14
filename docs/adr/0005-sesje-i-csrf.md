@@ -1,8 +1,14 @@
 # ADR-0005: Uwierzytelnianie sesją w ciasteczku, nie JWT
 
-- **Status:** zaakceptowany
+- **Status:** ⚠️ **zastąpiony przez [ADR-0007](0007-django-zamiast-fastapi.md)**
 - **Data:** 2026-10-14
 - **Dotyczy:** uwierzytelnianie, bezpieczeństwo formularzy
+
+> **Dokument nieaktualny.** Opisuje mechanizmy, które trzeba było napisać
+> samodzielnie przy FastAPI. Django dostarcza je w standardzie:
+> `django.contrib.sessions`, `CsrfViewMiddleware`, Argon2 w
+> `PASSWORD_HASHERS`. Decyzja „sesja w ciasteczku zamiast JWT” pozostaje
+> słuszna — zmienia się tylko to, że nie implementujemy jej sami.
 
 ## Kontekst
 
