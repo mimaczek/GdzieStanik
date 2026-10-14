@@ -77,6 +77,20 @@ python manage.py runserver
 Rozdzielenie na dwa skrypty pozwala pracować na maszynie bez dostępu
 do PyPI — szczegóły w [`docs/praca-offline.md`](docs/praca-offline.md).
 
+### Przykładowe dane
+
+Zestaw z `docs/domain-model.md` §8 — dwa domy, przedmioty-pojemniki
+zagnieżdżone dwa poziomy, tagi, właściciele:
+
+```bash
+python manage.py seed_demo_data            # odmawia, gdy baza nie jest pusta
+python manage.py seed_demo_data --reset    # kasuje wszystko i wgrywa od nowa
+```
+
+Konta „anna” i „michal” tworzone przy okazji są wyłącznie właścicielami
+przedmiotów w danych demo — nie mają ustawionego hasła, nie da się nimi
+zalogować. Do logowania służy konto z `createsuperuser`.
+
 ### Produkcja (Raspberry Pi)
 
 ```bash
