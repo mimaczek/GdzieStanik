@@ -1,0 +1,52 @@
+# --- Sesje opencode (prywatne notatki z planowania) ---
+.sessions/
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Środowiska wirtualne
+.venv/
+venv/
+env/
+
+# Narzędzia
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# --- Dane aplikacji ---
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+data/
+media/
+uploads/
+
+# --- Konfiguracja lokalna i sekrety ---
+.env
+.env.*
+!.env.example
+secrets.toml
+
+# --- Edytory ---
+.vscode/
+.idea/
+*.swp
+*~
+
+# --- System ---
+.DS_Store
+Thumbs.db
