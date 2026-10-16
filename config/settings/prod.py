@@ -30,7 +30,10 @@ DATABASES["default"]["NAME"] = Path(  # noqa: F405
     os.environ.get("DATABASE_PATH", "/data/gdziestanik.db")
 )
 
-MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", "/data/photos"))
+# UWAGA: photo_upload_path (inventory/models.py) sam dokleja prefiks
+# "photos/" do każdej ścieżki — MEDIA_ROOT musi więc wskazywać na
+# katalog NADRZĘDNY, inaczej pliki trafią do .../photos/photos/...
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", "/data"))
 
 
 # ─────────────────────────────────────────────────────────────────

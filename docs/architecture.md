@@ -423,6 +423,13 @@ Dopóki HTTPS nie działa, ciasteczko sesyjne leci otwartym tekstem —
 
 ## 9. Wdrożenie
 
+> **Rzeczywiste pierwsze wdrożenie poszło inną drogą** — hosting
+> współdzielony mydevil.net (FreeBSD, Phusion Passenger) zamiast
+> Raspberry Pi. Uzasadnienie w [ADR-0008](adr/0008-hosting-mydevil.md),
+> pełna procedura w [`docs/wdrozenie-mydevil.md`](wdrozenie-mydevil.md).
+> Poniższy plan Docker/Raspberry Pi pozostaje udokumentowaną opcją
+> alternatywną, `config/settings/prod.py` nie został usunięty.
+
 ```yaml
 services:
   app:

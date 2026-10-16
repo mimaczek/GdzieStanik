@@ -22,6 +22,7 @@ sygnałami ostrzegawczymi.
 | [0005](0005-sesje-i-csrf.md) | ~~Uwierzytelnianie sesją w ciasteczku, nie JWT~~ | zastąpiony przez 0007 |
 | [0006](0006-przechowywanie-zdjec.md) | Zdjęcia skalowane przy uploadzie, dane poza kartą SD | zaakceptowany |
 | [0007](0007-django-zamiast-fastapi.md) | Django zamiast FastAPI | zaakceptowany |
+| [0008](0008-hosting-mydevil.md) | Hosting mydevil.net zamiast Raspberry Pi | zaakceptowany |
 
 ## Zależności między decyzjami
 
@@ -35,6 +36,10 @@ sygnałami ostrzegawczymi.
 
 0003 (SQLite, plik bazy)
   └─> 0006 (plik bazy i zdjęcia na dysku zewnętrznym)
+        └─> 0008 (ta sama zasada, inna ścieżka: ~/domains/.../data/)
+
+0007 (Django 6.0 na Pythonie 3.14, wymuszone przez Ubuntu 26.04)
+  └─> 0008 (mydevil ma Python 3.12 — świadomie pozostano przy 6.0)
 ```
 
 Decyzja o rezygnacji z SPA na rzecz renderowania serwerowego pozostaje
