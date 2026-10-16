@@ -205,6 +205,17 @@ class TestTagi:
 
 
 class TestUploadZdjecia:
+    def test_pole_otwiera_aparat_na_telefonie(self, client_zalogowany, dom):
+        """
+        capture="environment" na iOS Safari i przeglądarkach Android
+        otwiera bezpośrednio aparat (tylna kamera) zamiast galerii —
+        kluczowe dla scenariusza 5.2 z vision.md (dodawanie jedną ręką
+        w trakcie porządków). Na desktopie atrybut jest ignorowany.
+        """
+        resp = client_zalogowany.get(reverse("inventory:add_item"))
+        tresc = resp.content.decode()
+        assert 'capture="environment"' in tresc
+
     def test_zdjecie_jest_przetwarzane_i_zapisywane(
         self, client_zalogowany, dom, szafa
     ):

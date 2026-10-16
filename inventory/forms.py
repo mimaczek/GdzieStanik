@@ -48,7 +48,21 @@ class AddItemForm(forms.Form):
     description = forms.CharField(
         label="Opis", required=False, widget=forms.Textarea(attrs={"rows": 2})
     )
-    photo = forms.ImageField(label="Zdjęcie", required=False)
+    photo = forms.ImageField(
+        label="Zdjęcie",
+        required=False,
+        widget=forms.ClearableFileInput(
+            attrs={
+                # capture="environment" otwiera na telefonie bezpośrednio
+                # aparat (tylna kamera) zamiast galerii — iOS Safari i
+                # przeglądarki na Androidzie respektują ten atrybut HTML.
+                # Na desktopie jest ignorowany, więc zwykły wybór pliku
+                # dalej działa bez zmian.
+                "capture": "environment",
+                "accept": "image/*",
+            }
+        ),
+    )
     tags = forms.CharField(
         label="Tagi",
         required=False,
