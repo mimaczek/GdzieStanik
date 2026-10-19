@@ -31,8 +31,8 @@ htmlcov/
 vendor/
 
 # Zasoby frontendu pobierane przez ten sam skrypt
-static/htmx.min.js
-static/pico.min.css
+# static/htmx.min.js
+# static/pico.min.css
 
 # --- Django ---
 staticfiles/
